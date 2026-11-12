@@ -16,7 +16,7 @@ export interface Chip {
   texto: string;
 }
 
-type ChipBase = Chip & { quandoMeta?: "aberta" | "batida" };
+type ChipBase = Chip & { quandoMeta?: "aberta" | "batida"; /** Quanto o chip de meta soma ao saldo. */ valor?: number };
 
 // ---------- Roteiros dos 4 negócios de demonstração ----------
 // Cada venda de meta vale mais do que falta na semente (ver `faltaMeta`), então
@@ -25,7 +25,7 @@ type ChipBase = Chip & { quandoMeta?: "aberta" | "batida" };
 const ROTEIROS: Record<string, ChipBase[]> = {
   padaria: [
     { id: "compra-lote", tipo: "compra", rotulo: "Comprar matéria-prima", texto: "Comprei 50kg de farinha e 20L de leite por 320 reais no Pix" },
-    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 40 pães franceses e 4 bolos de chocolate por 185 reais", quandoMeta: "aberta" },
+    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 40 pães franceses e 4 bolos de chocolate por 185 reais", quandoMeta: "aberta", valor: 185 },
     { id: "perda", tipo: "perda", rotulo: "Perda de pães", texto: "Perdi 12 pães amanhecidos" },
     { id: "despesa", tipo: "despesa", rotulo: "Conta de luz", texto: "Paguei a conta de luz de 380 reais" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 5 coxinhas por 25 reais" },
@@ -33,7 +33,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   ],
   petshop: [
     { id: "compra", tipo: "compra", rotulo: "Repor ração", texto: "Comprei 10 rações premium de 15kg por 1420 reais" },
-    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 2 rações premium de 15kg por 399,80 reais", quandoMeta: "aberta" },
+    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 2 rações premium de 15kg por 399,80 reais", quandoMeta: "aberta", valor: 399.8 },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 coleiras por 59,80 reais" },
     { id: "novo-compra", tipo: "novo", rotulo: "Produto novo (compra)", texto: "Comprei 12 comedouros por 180 reais" },
     { id: "perda", tipo: "perda", rotulo: "Perda de estoque", texto: "Perdi 1 shampoo vazado" },
@@ -41,7 +41,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   ],
   roupas: [
     { id: "compra", tipo: "compra", rotulo: "Repor camisetas", texto: "Comprei 20 camisetas por 360 reais" },
-    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 3 camisetas e 1 calça jeans por 289,60 reais", quandoMeta: "aberta" },
+    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 3 camisetas e 1 calça jeans por 289,60 reais", quandoMeta: "aberta", valor: 289.6 },
     { id: "compra-insumo", tipo: "compra", rotulo: "Comprar tecido", texto: "Comprei 10 metros de tecido por 140 reais" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 bonés por 70 reais" },
     { id: "perda", tipo: "perda", rotulo: "Peça com defeito", texto: "Perdi 2 camisetas com defeito" },
@@ -49,7 +49,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   ],
   mercado: [
     { id: "compra", tipo: "compra", rotulo: "Repor leite", texto: "Comprei 48 caixas de leite por 206,40 reais" },
-    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 12 latinhas de cerveja e 2 arroz por 119,70 reais", quandoMeta: "aberta" },
+    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 12 latinhas de cerveja e 2 arroz por 119,70 reais", quandoMeta: "aberta", valor: 119.7 },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 3 pacotes de pipoca por 12 reais" },
     { id: "novo-compra", tipo: "novo", rotulo: "Produto novo (compra)", texto: "Comprei 20 pacotes de bala por 40 reais" },
     { id: "perda", tipo: "perda", rotulo: "Leite vencido", texto: "Perdi 4 caixas de leite vencidas" },
@@ -145,13 +145,42 @@ function chipsDoHistorico(n: Negocio, agora: number): ChipBase[] {
 }
 
 /**
+ * A meta é sobre o saldo líquido: depois de compras e despesas, a venda fixa do
+ * roteiro pode não bastar. Aí o chip vira uma venda do mais vendido que cobre o
+ * que falta com folga (e cabe no estoque), para o confete continuar garantido.
+ */
+function vendaQueBateMeta(n: Negocio, agora: number, falta: number): string | null {
+  const ranking = maisVendidos(n, agora, 5).map((m) => m.chave);
+  const posicao = (id: string) => (ranking.includes(id) ? ranking.indexOf(id) : ranking.length);
+  const candidatos = situacaoEstoque(n, agora)
+    .filter((s) => (s.item.precoVenda ?? 0) > 0)
+    .sort((a, b) => posicao(a.item.id) - posicao(b.item.id));
+  const opcoes = candidatos
+    .map((s) => {
+      const preco = s.item.precoVenda ?? 0;
+      return { s, preco, qtd: Math.ceil((falta + Math.max(20, falta * 0.05)) / preco) };
+    })
+    .filter((o) => o.qtd <= Math.floor(o.s.disponivel));
+  // Uma venda crível na fala ("vendi 23 bolos"), não "vendi 972 pães": até 30 unidades, senão a menor quantidade.
+  const escolha = opcoes.find((o) => o.qtd <= 30) ?? [...opcoes].sort((a, b) => a.qtd - b.qtd)[0];
+  return escolha ? `${frase("Vendi", escolha.qtd, escolha.s.item)} por ${dinheiro(escolha.preco * escolha.qtd)} reais` : null;
+}
+
+/**
  * Chips do negócio atual, na ordem de exibição. O chip de meta só aparece
  * enquanto a meta está aberta; batida, ele dá lugar a vendas pelo histórico.
  */
 export function gerarChips(negocio: Negocio, agora: number): Chip[] {
   const roteiro = (negocio.preConfigurado && ROTEIROS[negocio.id]) || roteiroPersonalizado(negocio);
-  const batida = progressoMeta(negocio, agora).batida;
-  const base = roteiro.filter((c) => !c.quandoMeta || (c.quandoMeta === "batida") === batida);
+  const meta = progressoMeta(negocio, agora);
+  const falta = meta.meta - meta.atual;
+  const base = roteiro
+    .filter((c) => !c.quandoMeta || (c.quandoMeta === "batida") === meta.batida)
+    .map((c) => {
+      if (c.tipo !== "meta" || c.valor === undefined || c.valor > falta) return c;
+      const texto = vendaQueBateMeta(negocio, agora, falta);
+      return texto ? { ...c, texto } : c;
+    });
   const vistos = new Set(base.map((c) => c.texto));
   const doHistorico = chipsDoHistorico(negocio, agora).filter((c) => !vistos.has(c.texto));
   // Os do histórico vêm logo depois do primeiro chip de cada tipo importante.

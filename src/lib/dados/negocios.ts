@@ -2,7 +2,7 @@
 // forma determinística a partir do dia atual, com a meta semanal perto de 100%.
 
 import { custoUnitario, indexarItens, inicioDoDia, JANELA_DIAS, arredondar } from "../dominio/estoque";
-import { lucroDaTransacao } from "../dominio/metricas";
+import { lucroDaTransacao, saldoDaSemana } from "../dominio/metricas";
 import type {
   EstadoApp,
   ItemEstoque,
@@ -57,7 +57,7 @@ interface NegocioSemente {
 const FATOR_DIA = [0.85, 0.85, 0.95, 1, 1, 1.15, 1.3];
 
 /** Suba ao mudar as sementes: negócios de demonstração intocados são refeitos no navegador. */
-export const VERSAO_DADOS = 4;
+export const VERSAO_DADOS = 5;
 
 const PADARIA: NegocioSemente = {
   id: "padaria",
@@ -340,9 +340,9 @@ function gerarNegocio(semente: NegocioSemente, agora: number): Negocio {
 
   transacoes.sort((a, b) => a.timestamp - b.timestamp);
 
-  // Meta semanal em múltiplo de R$ 50, deixando o histórico a poucos reais dela (~97-99%).
-  const vendasSemana = transacoes.filter((t) => t.tipo === "venda").reduce((s, t) => s + t.valor, 0);
-  const metaSemanal = Math.ceil((vendasSemana + semente.faltaMeta) / 50) * 50;
+  // Meta semanal (sobre o saldo líquido) em múltiplo de R$ 50, deixando o histórico a poucos reais dela.
+  const { liquido } = saldoDaSemana(transacoes, agora);
+  const metaSemanal = Math.ceil((liquido + semente.faltaMeta) / 50) * 50;
 
   // Média dos dias completos, para estimar o começo do mês.
   const diasCompletos = transacoes.filter((t) => t.timestamp < hoje);

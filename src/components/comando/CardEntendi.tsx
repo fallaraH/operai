@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowRight, CircleCheck, Factory, Package, Pencil, Undo2, Wallet, Wheat, X, type LucideIcon } from "lucide-react";
-import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from "react";
+import { ArrowRight, Check, CircleCheck, Factory, Package, Pencil, Undo2, Wallet, Wheat, X, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState, type FocusEvent, type FormEvent, type ReactNode } from "react";
 import type { MudancaDisponibilidade } from "@/lib/dominio/estoque";
 import type { Negocio, Transacao } from "@/lib/dominio/tipos";
 import { moeda, quantidade } from "@/lib/formatar";
 import type { EdicaoCard } from "@/lib/interpretador/edicao";
-import type { ResultadoComando } from "@/lib/store";
+import { renomearNoRegistro, type ResultadoComando } from "@/lib/store";
 import { visualDa } from "../ui/visualTransacao";
 import { TOM_OPERACAO, TOM_RECEITA } from "../ui/tons";
 import { FormEdicao } from "./FormEdicao";
@@ -24,7 +24,7 @@ interface Props {
   aoDesfazer: () => void;
   /** Desfaz este registro e lança de novo com as correções (o card fecha). */
   aoReaplicar: (transacao: Transacao, edicao: EdicaoCard) => void;
-  /** Última pergunta de item novo respondida: o card fecha com este resumo. */
+  /** Confirmar, ou última pergunta de item novo respondida: o card fecha com este resumo. */
   aoConcluir: (resumo: string) => void;
 }
 
@@ -53,14 +53,14 @@ function useContagem(ativa: boolean, pausada: boolean, aoTerminar: () => void) {
   }, [ativa, pausada]);
 }
 
-function Mudancas({ mudancas }: { mudancas: MudancaDisponibilidade[] }) {
+function Mudancas({ mudancas, negocio }: { mudancas: MudancaDisponibilidade[]; negocio: Negocio }) {
   return (
     <ul className="mt-1 space-y-0.5">
       {mudancas.slice(0, MAX_MUDANCAS).map((m) => {
         const subiu = m.depois > m.antes;
         return (
           <li key={m.itemId} className="flex items-center gap-2 text-xs">
-            <span className="min-w-0 flex-1 truncate text-zinc-700">{m.nome}</span>
+            <span className="min-w-0 flex-1 truncate text-zinc-700">{negocio.itens.find((i) => i.id === m.itemId)?.nome ?? m.nome}</span>
             <span className="num text-zinc-400">{quantidade(m.antes, m.unidade)}</span>
             <ArrowRight className="size-3 shrink-0 text-zinc-400" aria-label="para" />
             <span className={`num font-medium ${subiu ? "text-emerald-700" : "text-red-700"}`}>{quantidade(m.depois, m.unidade)}</span>
@@ -91,14 +91,69 @@ function linhaValor(t: Transacao, valorUnitario: number | undefined, qtd: number
   return moeda(valorUnitario * qtd);
 }
 
-/** Card zero-clique: o comando já foi aplicado; mostra o impacto e permite desfazer ou editar. */
+/** Troca o nome (ou a descrição) no lugar: Enter salva, Esc cancela. */
+function RenomearInline({ inicial, rotulo, aoSalvar, aoCancelar }: { inicial: string; rotulo: string; aoSalvar: (nome: string) => void; aoCancelar: () => void }) {
+  const [nome, setNome] = useState(inicial);
+  const vazio = !nome.trim();
+  function salvar(e: FormEvent) {
+    e.preventDefault();
+    if (!vazio) aoSalvar(nome.trim());
+  }
+  return (
+    <form onSubmit={salvar} className="flex min-w-0 flex-1 items-center gap-1" aria-label={rotulo}>
+      <input
+        autoFocus
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        onKeyDown={(e) => e.key === "Escape" && aoCancelar()}
+        onFocus={(e) => e.currentTarget.select()}
+        aria-label={rotulo}
+        aria-invalid={vazio}
+        className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-base outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+      />
+      <button type="submit" disabled={vazio} className="rounded-md bg-emerald-600 p-1.5 text-white transition hover:bg-emerald-700 disabled:opacity-40" aria-label="Salvar nome">
+        <Check className="size-4" />
+      </button>
+      <button type="button" onClick={aoCancelar} className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700" aria-label="Cancelar">
+        <X className="size-4" />
+      </button>
+    </form>
+  );
+}
+
+function BotaoLapis({ rotulo, aoClicar }: { rotulo: string; aoClicar: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      className="shrink-0 rounded p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-emerald-700"
+      aria-label={rotulo}
+      title={rotulo}
+    >
+      <Pencil className="size-3.5" />
+    </button>
+  );
+}
+
+/** Índice usado para renomear a descrição da despesa (que não tem linhas). */
+const DESCRICAO = -1;
+
+/** Card zero-clique: o comando já foi aplicado; mostra o impacto e permite confirmar, desfazer ou editar. */
 export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReaplicar, aoConcluir }: Props) {
   const [transacao, setTransacao] = useState(resultado.transacao);
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [pausado, setPausado] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [renomeando, setRenomeando] = useState<number | null>(null);
   const pendentes = resultado.perguntas.filter((p) => !(p.itemId in respostas));
-  const contando = pendentes.length === 0 && !editando;
+  const contando = pendentes.length === 0 && !editando && renomeando === null;
+
+  function renomear(indice: number, nome: string) {
+    const r = indice === DESCRICAO ? { descricao: nome } : { linhas: { [indice]: nome } };
+    const t = renomearNoRegistro(resultado.negocioId, transacao.id, r);
+    if (t) setTransacao(t);
+    setRenomeando(null);
+  }
   useContagem(contando, pausado, aoFechar);
 
   const visual = visualDa(transacao, negocio);
@@ -168,17 +223,32 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
           {transacao.itens.length ? (
             transacao.itens.map((l, i) => (
               <li key={`${l.itemId}-${i}`} className="flex items-center gap-2 px-3 py-2 text-sm">
-                <span className="min-w-0 flex-1 truncate text-zinc-800">
-                  <span className="num text-zinc-900">{quantidade(l.quantidade, l.unidade)}</span> {l.nome}
-                  {l.itemId && resultado.novosItens.includes(l.itemId) && (
-                    <span className="ml-1.5 rounded bg-emerald-600 px-1 py-px align-middle text-[9px] font-semibold tracking-wide text-white">NOVO</span>
-                  )}
-                </span>
-                <span className="num shrink-0 text-xs text-zinc-500">{linhaValor(transacao, l.valorUnitario, l.quantidade)}</span>
+                <span className="num shrink-0 text-zinc-900">{quantidade(l.quantidade, l.unidade)}</span>
+                {renomeando === i ? (
+                  <RenomearInline inicial={l.nome} rotulo={`Nome de ${l.nome}`} aoSalvar={(nome) => renomear(i, nome)} aoCancelar={() => setRenomeando(null)} />
+                ) : (
+                  <>
+                    <span className="min-w-0 truncate text-zinc-800">{l.nome}</span>
+                    {l.itemId && resultado.novosItens.includes(l.itemId) && (
+                      <span className="shrink-0 rounded bg-emerald-600 px-1 py-px text-[9px] font-semibold tracking-wide text-white">NOVO</span>
+                    )}
+                    <BotaoLapis rotulo={`Corrigir o nome de ${l.nome}`} aoClicar={() => setRenomeando(i)} />
+                    <span className="num ml-auto shrink-0 text-xs text-zinc-500">{linhaValor(transacao, l.valorUnitario, l.quantidade)}</span>
+                  </>
+                )}
               </li>
             ))
           ) : (
-            <li className="px-3 py-2 text-sm text-zinc-700">{transacao.descricao}</li>
+            <li className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-700">
+              {renomeando === DESCRICAO ? (
+                <RenomearInline inicial={transacao.descricao} rotulo="Descrição da operação" aoSalvar={(nome) => renomear(DESCRICAO, nome)} aoCancelar={() => setRenomeando(null)} />
+              ) : (
+                <>
+                  <span className="min-w-0 truncate">{transacao.descricao}</span>
+                  <BotaoLapis rotulo="Corrigir a descrição" aoClicar={() => setRenomeando(DESCRICAO)} />
+                </>
+              )}
+            </li>
           )}
           <li className="flex items-center justify-between bg-zinc-50 px-3 py-2 text-sm">
             <span className="font-medium text-zinc-700">Total</span>
@@ -196,17 +266,17 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
         <ol className="mt-2" aria-label="Impacto">
           {insumos.length > 0 && (
             <Passo Icone={Wheat} titulo="Estoque de insumos" tom={TOM_OPERACAO.badge}>
-              <Mudancas mudancas={insumos} />
+              <Mudancas mudancas={insumos} negocio={negocio} />
             </Passo>
           )}
           {finais.length > 0 && (
             <Passo Icone={Factory} titulo="Produtos finais disponíveis" tom={TOM_RECEITA.badge}>
-              <Mudancas mudancas={finais} />
+              <Mudancas mudancas={finais} negocio={negocio} />
             </Passo>
           )}
           {revenda.length > 0 && (
             <Passo Icone={Package} titulo="Estoque de revenda" tom={TOM_RECEITA.badge}>
-              <Mudancas mudancas={revenda} />
+              <Mudancas mudancas={revenda} negocio={negocio} />
             </Passo>
           )}
           <Passo Icone={Wallet} titulo="Caixa" tom="border-zinc-200 bg-zinc-50 text-zinc-600">
@@ -276,9 +346,17 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
         >
           <Pencil className="size-4" strokeWidth={1.75} /> Editar
         </button>
-        <span className="flex-1 pr-2 text-right text-[11px] text-zinc-400">
-          {editando ? "Editando" : pendentes.length ? "Responda para fechar" : pausado ? "Pausado" : "Fecha em 10 s"}
+        <span className="min-w-0 flex-1 truncate px-1 text-right text-[11px] text-zinc-400">
+          {editando ? "Editando" : renomeando !== null ? "Renomeando" : pendentes.length ? "Responda ou confirme" : pausado ? "Pausado" : "Fecha em 10 s"}
         </span>
+        <button
+          type="button"
+          onClick={() => aoConcluir("Registro confirmado")}
+          disabled={editando || renomeando !== null}
+          className="flex shrink-0 items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
+        >
+          <Check className="size-4" strokeWidth={2.25} /> Confirmar
+        </button>
       </footer>
       {contando && (
         <div className="h-0.5 bg-zinc-100" aria-hidden>

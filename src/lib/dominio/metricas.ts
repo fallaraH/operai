@@ -44,26 +44,42 @@ export function resumoMes(negocio: Negocio, agora: number): ResumoMes {
   return { faturamento, lucro };
 }
 
-/** Vendas dos últimos 7 dias (base da Meta Semanal). */
-export function vendasDaSemana(negocio: Negocio, agora: number): number {
-  const inicio = inicioJanela(agora);
-  return negocio.transacoes
-    .filter((t) => t.tipo === "venda" && t.timestamp >= inicio && t.timestamp <= agora)
-    .reduce((s, t) => s + t.valor, 0);
+export interface SaldoSemana {
+  /** Vendas dos últimos 7 dias. */
+  entradas: number;
+  /** Compras, despesas, prejuízos e perdas dos últimos 7 dias. */
+  saidas: number;
+  /** entradas − saídas: a base da Meta Semanal (pode ficar negativo). */
+  liquido: number;
 }
 
-export interface ProgressoMeta {
+/** Saldo líquido dos últimos 7 dias: toda saída (inclusive perda e sinistro) desconta das vendas. */
+export function saldoDaSemana(transacoes: Transacao[], agora: number): SaldoSemana {
+  const inicio = inicioJanela(agora);
+  let entradas = 0;
+  let saidas = 0;
+  for (const t of transacoes) {
+    if (t.timestamp < inicio || t.timestamp > agora) continue;
+    if (t.tipo === "venda") entradas += t.valor;
+    else saidas += t.valor;
+  }
+  return { entradas, saidas, liquido: entradas - saidas };
+}
+
+export interface ProgressoMeta extends SaldoSemana {
+  /** Saldo líquido atual (o valor exibido, mesmo negativo). */
   atual: number;
   meta: number;
+  /** Percentual real; a barra trava entre 0 e 100. */
   percentual: number;
   batida: boolean;
 }
 
 export function progressoMeta(negocio: Negocio, agora: number): ProgressoMeta {
-  const atual = vendasDaSemana(negocio, agora);
+  const saldo = saldoDaSemana(negocio.transacoes, agora);
   const meta = negocio.metaSemanal;
-  const percentual = meta > 0 ? (atual / meta) * 100 : 0;
-  return { atual, meta, percentual, batida: meta > 0 && atual >= meta };
+  const percentual = meta > 0 ? (saldo.liquido / meta) * 100 : 0;
+  return { ...saldo, atual: saldo.liquido, meta, percentual, batida: meta > 0 && saldo.liquido >= meta };
 }
 
 export interface PontoDiario {

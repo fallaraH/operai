@@ -50,7 +50,7 @@ function atualizarDia(e: EstadoApp, agora: number): EstadoApp {
     const n = negocios[id];
     if (!n?.preConfigurado || n.transacoes.some((t) => t.origem !== "seed")) continue;
     const novo = gerarNegocioDemo(id, agora);
-    if (novo) negocios[id] = novo;
+    if (novo) negocios[id] = n.metaEditada ? { ...novo, metaSemanal: n.metaSemanal, metaEditada: true } : novo;
   }
   return { ...e, negocios, diaBase: hoje, versaoDados: VERSAO_DADOS };
 }
@@ -182,7 +182,7 @@ export function excluirNegocio(id: string) {
 }
 
 export function definirMetaSemanal(negocioId: string, meta: number) {
-  atualizarNegocio(negocioId, (n) => ({ ...n, metaSemanal: Math.max(0, Math.round(meta)) }));
+  atualizarNegocio(negocioId, (n) => ({ ...n, metaSemanal: Math.max(0, Math.round(meta * 100) / 100), metaEditada: true }));
 }
 
 /** Cadastra (ou substitui, se o id já existir) um item no estoque. */
@@ -312,6 +312,54 @@ export function completarItemNovo(
       [negocioId]: {
         ...n,
         itens: n.itens.map((i) => (i.id === itemId ? atualizado : i)),
+        transacoes: n.transacoes.map((x) => (x.id === transacaoId ? transacao : x)),
+      },
+    },
+  });
+  return transacao;
+}
+
+export interface Renomeacao {
+  /** Novo nome por índice de linha da transação. */
+  linhas?: Record<number, string>;
+  /** Despesa (sem itens): nova descrição da operação. */
+  descricao?: string;
+}
+
+/**
+ * Corrige o nome que a voz/texto entendeu errado: atualiza a linha e a
+ * descrição no Histórico e o item correspondente no Estoque. O Desfazer do card
+ * continua voltando ao estado de antes do comando (nome antigo incluso).
+ */
+export function renomearNoRegistro(negocioId: string, transacaoId: string, r: Renomeacao): Transacao | null {
+  const e = atual();
+  const n = e.negocios[negocioId];
+  const t = n?.transacoes.find((x) => x.id === transacaoId);
+  if (!n || !t) return null;
+
+  const porItem = new Map<string, string>();
+  let descricao = t.descricao;
+  const itens = t.itens.map((l, i) => {
+    const novo = r.linhas?.[i]?.trim().replace(/\s+/g, " ");
+    if (!novo || novo === l.nome) return l;
+    if (l.itemId) porItem.set(l.itemId, novo);
+    descricao = descricao.split(l.nome).join(novo);
+    return { ...l, nome: novo };
+  });
+  // Outras linhas do mesmo item acompanham o novo nome.
+  const linhas = itens.map((l) => (l.itemId && porItem.has(l.itemId) ? { ...l, nome: porItem.get(l.itemId)! } : l));
+  const novaDescricao = r.descricao?.trim();
+  if (novaDescricao && !t.itens.length) descricao = novaDescricao;
+  if (descricao === t.descricao && !porItem.size) return t;
+
+  const transacao: Transacao = { ...t, itens: linhas, descricao };
+  definir({
+    ...e,
+    negocios: {
+      ...e.negocios,
+      [negocioId]: {
+        ...n,
+        itens: n.itens.map((i) => (porItem.has(i.id) ? { ...i, nome: porItem.get(i.id)! } : i)),
         transacoes: n.transacoes.map((x) => (x.id === transacaoId ? transacao : x)),
       },
     },

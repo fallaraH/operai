@@ -18,6 +18,7 @@ import {
   obterNegocioAtivoId,
   registrarPlano,
   reiniciarDemo,
+  renomearNoRegistro,
   useAgora,
   useEstado,
   type ResultadoComando,
@@ -179,7 +180,11 @@ function InterfaceOperAI() {
       return;
     }
     const alvo = obterNegocio(negocioId);
-    const interpretacao = interpretacaoEditada(res.interpretacao, transacao, edicao);
+    // O desfazer também volta o nome do item (se foi renomeado no card): refaz pelo
+    // nome que o estoque tem agora, para casar o mesmo item e não criar duplicado.
+    const nomeNoEstoque = (l: Transacao["itens"][number]) => alvo?.itens.find((i) => i.id === l.itemId)?.nome ?? l.nome;
+    const base = { ...transacao, itens: transacao.itens.map((l) => ({ ...l, nome: nomeNoEstoque(l) })) };
+    const interpretacao = interpretacaoEditada(res.interpretacao, base, edicao);
     const plano = alvo && planejarRegistro(interpretacao, alvo, transacao.origem, novoId);
     if (!plano?.ok) {
       setResultado(null);
@@ -188,6 +193,13 @@ function InterfaceOperAI() {
     }
     const novo = registrarPlano(negocioId, transacao.chipId ? comChip(plano.plano, transacao.chipId) : plano.plano, interpretacao);
     if (!novo) return;
+    // Nome do formulário (já com qualquer correção feita pelo lápis) vale sobre o refeito.
+    const linhas: Record<number, string> = {};
+    edicao.nomes.forEach((nome, i) => {
+      const refeita = novo.transacao.itens[i];
+      if (nome && refeita && nome !== refeita.nome) linhas[i] = nome;
+    });
+    renomearNoRegistro(negocioId, novo.transacao.id, { linhas, descricao: edicao.descricao ?? undefined });
     // Edição salva = registro consolidado: o card fecha e não reabre.
     setConsolidadas((s) => new Set(s).add(transacao.id).add(novo.transacao.id));
     setResultado(null);

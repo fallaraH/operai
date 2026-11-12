@@ -97,6 +97,8 @@ export interface Negocio {
   icone?: NomeIcone;
   modo: ModoOperacao;
   metaSemanal: number;
+  /** O comerciante definiu a meta à mão: regenerar a demo não a sobrescreve. */
+  metaEditada?: boolean;
   itens: ItemEstoque[];
   transacoes: Transacao[];
   /**

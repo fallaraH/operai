@@ -1,4 +1,4 @@
-// Edição inline do card "Entendi assim": o comerciante corrige quantidade,
+// Edição inline do card "Entendi assim": o comerciante corrige nome, quantidade,
 // preço (venda) ou custo (compra) e o registro é reaplicado do zero.
 
 import type { Transacao } from "../dominio/tipos";
@@ -12,6 +12,10 @@ export interface EdicaoCard {
   precos: (number | null)[];
   /** Só despesa. */
   valor: number | null;
+  /** Nome corrigido por linha (renomeia também o item no estoque). */
+  nomes: string[];
+  /** Despesa: descrição corrigida da operação. */
+  descricao: string | null;
 }
 
 const TIPO: Record<Transacao["tipo"], TipoMovimentacao> = {
