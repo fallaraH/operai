@@ -67,7 +67,8 @@ export function OperAILogo({ tamanho = 32, className, escuro = false }: Props) {
 export function MarcaOperAI() {
   return (
     <span className="flex items-center gap-2">
-      <OperAILogo tamanho={28} />
+      {/* eslint-disable-next-line @next/next/no-img-element -- imagem estática da marca */}
+      <img src="/operai-logo.jfif" alt="OperAI" width={40} height={40} className="size-10 shrink-0 rounded-lg border border-zinc-200 object-cover" />
       <span className="text-[17px] leading-none font-semibold tracking-tight text-zinc-900">
         Oper<span className="text-emerald-700">AI</span>
       </span>

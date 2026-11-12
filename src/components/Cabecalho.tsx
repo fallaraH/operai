@@ -36,7 +36,7 @@ export function Cabecalho({ estado, aoAbrirTutorial, aoCriarNegocio, aoReiniciar
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <MarcaOperAI />
-          <p className="truncate pl-9 text-[11px] text-zinc-500">Fale, não digite.</p>
+          <p className="truncate pl-12 text-[11px] text-zinc-500">Fale, não digite.</p>
         </div>
         <button
           type="button"
