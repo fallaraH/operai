@@ -34,9 +34,8 @@ export function Cabecalho({ estado, aoAbrirTutorial, aoCriarNegocio, aoReiniciar
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 backdrop-blur">
       <div className="flex items-center gap-2">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="min-w-0 flex-1">
           <MarcaOperAI />
-          <p className="truncate pl-12 text-[11px] text-zinc-500">Fale, não digite.</p>
         </div>
         <button
           type="button"

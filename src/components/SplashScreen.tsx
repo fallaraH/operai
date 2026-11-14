@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-/** Tempo mínimo de abertura, mesmo que o localStorage carregue antes. */
-const DURACAO_MINIMA_MS = 1800;
+/** Tempo que a barra leva para ir de 0% a 100%. */
+const DURACAO_BARRA_MS = 1800;
 /** Igual ao `duration-700` do fade-out. */
 const FADE_MS = 700;
+const VERDE_NEON = "#22c55e";
+const MASCARA = "radial-gradient(ellipse closest-side at center, #000 62%, transparent 100%)";
 
 interface Props {
   /** Dados do localStorage já carregados: a interface pode aparecer. */
@@ -13,18 +15,25 @@ interface Props {
 }
 
 /**
- * Abertura de tela cheia exibida a cada carregamento: mostra a arte de abertura
- * por ao menos ~1,8 s (ou até os dados chegarem) e sai com fade-out, revelando o
- * app já montado por baixo.
+ * Abertura de tela cheia a cada carregamento: a arte de abertura com uma barra
+ * de 0% a 100% (~1,8 s). Só depois de bater 100% (e com os dados prontos) faz
+ * o fade-out e revela o app já montado por baixo.
  */
 export function SplashScreen({ pronto }: Props) {
-  const [minimoPassou, setMinimoPassou] = useState(false);
+  const [progresso, setProgresso] = useState(0);
   const [removida, setRemovida] = useState(false);
-  const saindo = pronto && minimoPassou;
+  const completo = progresso >= 100;
+  const saindo = pronto && completo;
 
   useEffect(() => {
-    const t = window.setTimeout(() => setMinimoPassou(true), DURACAO_MINIMA_MS);
-    return () => window.clearTimeout(t);
+    // Intervalo (e não rAF): segue contando mesmo com a aba em segundo plano.
+    const inicio = Date.now();
+    const timer = window.setInterval(() => {
+      const p = Math.min(100, ((Date.now() - inicio) / DURACAO_BARRA_MS) * 100);
+      setProgresso(p);
+      if (p >= 100) window.clearInterval(timer);
+    }, 30);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -34,13 +43,14 @@ export function SplashScreen({ pronto }: Props) {
   }, [saindo]);
 
   if (removida) return null;
+  const inteiro = Math.floor(progresso);
 
   return (
     <div
       role="status"
       aria-label="Abrindo o OperAI"
       aria-busy={!saindo}
-      className={`fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#141414] transition-opacity duration-700 ease-out ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#141414] px-6 transition-opacity duration-700 ease-out ${
         saindo ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
     >
@@ -48,12 +58,27 @@ export function SplashScreen({ pronto }: Props) {
       <img
         src="/operai-loading.jfif"
         alt="OperAI: seu financeiro no piloto automático"
-        className="animate-entrar-logo max-h-full w-full max-w-2xl object-contain"
+        className="animate-entrar-logo mx-auto h-auto w-full max-w-[280px] object-contain sm:max-w-[340px]"
+        // Bordas esmaecidas: a foto se mescla ao fundo sem mostrar a moldura retangular.
+        style={{ maskImage: MASCARA, WebkitMaskImage: MASCARA }}
       />
-      <div aria-hidden className="absolute inset-x-0 bottom-[max(2.5rem,env(safe-area-inset-bottom))] flex justify-center">
-        <div className="relative h-[3px] w-40 overflow-hidden rounded-full bg-white/10">
-          <div className="animate-carregar absolute inset-y-0 w-2/5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgb(52_211_153/0.8)]" />
+
+      <div className="mt-6 flex w-full flex-col items-center">
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={inteiro}
+          className="h-2.5 w-64 overflow-hidden rounded-full border border-zinc-700/60 bg-zinc-800 sm:w-72"
+        >
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#22c55e] shadow-[0_0_12px_#22c55e]"
+            style={{ width: `${progresso}%` }}
+          />
         </div>
+        <p className="mt-2 font-mono text-sm font-semibold tabular-nums" style={{ color: VERDE_NEON }}>
+          {inteiro}%
+        </p>
       </div>
     </div>
   );

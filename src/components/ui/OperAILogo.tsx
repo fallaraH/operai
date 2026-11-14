@@ -63,15 +63,18 @@ export function OperAILogo({ tamanho = 32, className, escuro = false }: Props) {
   );
 }
 
-/** Logo + nome, para o cabeçalho. */
+/** Logo + nome + lema, lado a lado, para o cabeçalho. */
 export function MarcaOperAI() {
   return (
-    <span className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element -- imagem estática da marca */}
-      <img src="/operai-logo.jfif" alt="OperAI" width={40} height={40} className="size-10 shrink-0 rounded-lg border border-zinc-200 object-cover" />
-      <span className="text-[17px] leading-none font-semibold tracking-tight text-zinc-900">
-        Oper<span className="text-emerald-700">AI</span>
-      </span>
-    </span>
+      <img src="/operai-logo.jfif" alt="OperAI" width={48} height={48} className="size-11 shrink-0 rounded-xl border border-zinc-200 object-cover sm:size-12" />
+      <div className="flex min-w-0 flex-col justify-center">
+        <span className="text-2xl leading-none font-extrabold tracking-tight text-zinc-900 sm:text-3xl">
+          Oper<span className="text-emerald-600">AI</span>
+        </span>
+        <span className="mt-1 truncate text-xs leading-tight font-medium text-zinc-500 sm:text-sm">Fale, não digite.</span>
+      </div>
+    </div>
   );
 }
