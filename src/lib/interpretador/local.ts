@@ -167,6 +167,70 @@ function extrairValores(tok: string[]): { tokens: string[]; valores: Valor[] } {
   return { tokens: saida, valores };
 }
 
+// ---------- 2b. Fiado ----------
+// Sai da frase antes de tudo: "conta" e "pagar" virariam despesa, e "caderneta" virariam item.
+
+const FRASES_FIADO: string[][] = [
+  ["no", "fiado"], ["fiado"], ["fiada"], ["fiados"],
+  ["pendurou"], ["pendurei"], ["pendura"], ["pendurar"], ["pendurado"], ["pendurada"],
+  ["na", "caderneta"], ["no", "caderninho"], ["no", "caderno"],
+  ["vai", "pagar", "depois"], ["vai", "acertar", "depois"], ["paga", "depois"], ["pagar", "depois"], ["acerta", "depois"],
+];
+const VERBOS_ANOTAR = new Set([
+  "anota", "anotar", "anotei", "marca", "marcar", "marquei", "coloca", "colocar", "coloquei", "bota", "botar", "botei", "poe",
+]);
+
+const PRONOMES = new Set(["ele", "ela", "eles", "elas"]);
+
+/** "fiado pro João", "anota pra Dona Ana", "marca na conta do Seu Zé" → fiado + quem deve. */
+function extrairFiado(tok: string[]): { tokens: string[]; ativo: boolean; nome: string | null } {
+  const norm = tok.map(semAcento);
+  const saida: string[] = [];
+  let ativo = false;
+  let nome: string | null = null;
+  /** "do|da|de <Nome>" logo em `k` ("na caderneta da Dona Maria"): devolve onde o nome acaba. */
+  const donoEm = (k: number): number | null => {
+    if (!DE.has(norm[k] ?? "")) return null;
+    const titulo = TITULOS_PESSOA.has(norm[k + 1] ?? "");
+    const inicioNome = titulo ? k + 2 : k + 1;
+    if (NAO_PESSOA.has(norm[inicioNome] ?? "")) return null;
+    const fim = fimDoNome(tok, inicioNome, 3);
+    if (fim === inicioNome) return null;
+    nome = tituloPt(tok.slice(k + 1, fim).join(" "));
+    return fim;
+  };
+  for (let i = 0; i < tok.length; ) {
+    // "ele pendurou", "ela vai pagar depois": o pronome sai junto.
+    const j = PRONOMES.has(norm[i]) ? i + 1 : i;
+    const frase = FRASES_FIADO.find((f) => confere(norm, j, f));
+    if (frase) {
+      ativo = true;
+      i = j + frase.length;
+      i = donoEm(i) ?? i;
+      continue;
+    }
+    // [anota/marca] na conta do|da|de <Nome>
+    const k = VERBOS_ANOTAR.has(norm[i]) ? i + 1 : i;
+    if (norm[k] === "na" && norm[k + 1] === "conta") {
+      const fim = donoEm(k + 2);
+      if (fim !== null) {
+        ativo = true;
+        i = fim;
+        continue;
+      }
+    }
+    // "anota pro João": o verbo sai; "pro João" fica para o cliente.
+    if (VERBOS_ANOTAR.has(norm[i]) && PARA.has(norm[i + 1] ?? "")) {
+      ativo = true;
+      i++;
+      continue;
+    }
+    saida.push(tok[i]);
+    i++;
+  }
+  return { tokens: ativo ? saida : tok, ativo, nome };
+}
+
 // ---------- 3. Tipo da movimentação ----------
 
 interface Deteccao {
@@ -498,7 +562,9 @@ export function interpretarLocal(texto: string, contexto?: ContextoNegocio | nul
   const original = texto.trim().slice(0, 500);
   const observacoes: string[] = [];
 
-  const { tokens: comMarcadores, valores } = extrairValores(preparar(original));
+  const { tokens: comValores, valores } = extrairValores(preparar(original));
+  const fiado = extrairFiado(comValores);
+  const comMarcadores = fiado.tokens;
   const deteccao = detectarTipo(comMarcadores);
   let trabalho = comMarcadores;
   if (deteccao.corte !== null) {
@@ -614,6 +680,8 @@ export function interpretarLocal(texto: string, contexto?: ContextoNegocio | nul
     default:
       tipo = TIPO_FINAL[deteccao.bruto];
   }
+  // "Anota pro João 2 pães": sem verbo, o fiado define que é venda.
+  if (fiado.ativo && (deteccao.bruto === null || deteccao.bruto === "recebimento") && temItens) tipo = "saida_venda";
   // Compra de gás, sacolas... que não estão no estoque é despesa.
   if (tipo === "entrada" && despesaCat && temItens && casados === 0) tipo = "despesa";
   // "Perdi 50 reais": perda sem mercadoria é saída de dinheiro.
@@ -651,10 +719,12 @@ export function interpretarLocal(texto: string, contexto?: ContextoNegocio | nul
 
   const resultado = {
     tipo_movimentacao: tipo,
-    cliente_ou_fornecedor: pessoa.nome,
+    cliente_ou_fornecedor: pessoa.nome ?? fiado.nome,
     itens: itensFinais,
     valor_total_operacao: totalOperacao,
     categoria_despesa: categoria,
+    // Fiado só existe em venda ("comprei fiado" do fornecedor fica de fora).
+    fiado: fiado.ativo && tipo === "saida_venda",
   };
   return {
     ...resultado,

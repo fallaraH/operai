@@ -6,7 +6,7 @@ import { maisVendidos, progressoMeta } from "./dominio/metricas";
 import type { ItemEstoque, Negocio, Unidade } from "./dominio/tipos";
 import { chaveDia } from "./formatar";
 
-export type TipoChip = "compra" | "repor" | "venda" | "meta" | "perda" | "despesa" | "novo";
+export type TipoChip = "compra" | "repor" | "venda" | "meta" | "fiado" | "perda" | "despesa" | "novo";
 
 export interface Chip {
   id: string;
@@ -26,6 +26,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   padaria: [
     { id: "compra-lote", tipo: "compra", rotulo: "Comprar matéria-prima", texto: "Comprei 50kg de farinha e 20L de leite por 320 reais no Pix" },
     { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 40 pães franceses e 4 bolos de chocolate por 185 reais", quandoMeta: "aberta", valor: 185 },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 20 pães franceses e 2 bolos por 85 reais fiado pro João" },
     { id: "perda", tipo: "perda", rotulo: "Perda de pães", texto: "Perdi 12 pães amanhecidos" },
     { id: "despesa", tipo: "despesa", rotulo: "Conta de luz", texto: "Paguei a conta de luz de 380 reais" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 5 coxinhas por 25 reais" },
@@ -34,6 +35,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   petshop: [
     { id: "compra", tipo: "compra", rotulo: "Repor ração", texto: "Comprei 10 rações premium de 15kg por 1420 reais" },
     { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 2 rações premium de 15kg por 399,80 reais", quandoMeta: "aberta", valor: 399.8 },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 1 ração premium e 2 areias por 243,70 fiado pro Seu Carlos" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 coleiras por 59,80 reais" },
     { id: "novo-compra", tipo: "novo", rotulo: "Produto novo (compra)", texto: "Comprei 12 comedouros por 180 reais" },
     { id: "perda", tipo: "perda", rotulo: "Perda de estoque", texto: "Perdi 1 shampoo vazado" },
@@ -42,6 +44,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   roupas: [
     { id: "compra", tipo: "compra", rotulo: "Repor camisetas", texto: "Comprei 20 camisetas por 360 reais" },
     { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 3 camisetas e 1 calça jeans por 289,60 reais", quandoMeta: "aberta", valor: 289.6 },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 2 camisetas e 1 bermuda por 169,70 reais, anota pra Dona Ana" },
     { id: "compra-insumo", tipo: "compra", rotulo: "Comprar tecido", texto: "Comprei 10 metros de tecido por 140 reais" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 bonés por 70 reais" },
     { id: "perda", tipo: "perda", rotulo: "Peça com defeito", texto: "Perdi 2 camisetas com defeito" },
@@ -50,6 +53,7 @@ const ROTEIROS: Record<string, ChipBase[]> = {
   mercado: [
     { id: "compra", tipo: "compra", rotulo: "Repor leite", texto: "Comprei 48 caixas de leite por 206,40 reais" },
     { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 12 latinhas de cerveja e 2 arroz por 119,70 reais", quandoMeta: "aberta", valor: 119.7 },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 2 arroz e 1 café por 82,70 reais, marca na conta do Seu Zé" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 3 pacotes de pipoca por 12 reais" },
     { id: "novo-compra", tipo: "novo", rotulo: "Produto novo (compra)", texto: "Comprei 20 pacotes de bala por 40 reais" },
     { id: "perda", tipo: "perda", rotulo: "Leite vencido", texto: "Perdi 4 caixas de leite vencidas" },
@@ -79,6 +83,7 @@ function roteiroPersonalizado(n: Negocio): ChipBase[] {
   return [
     { id: "compra", tipo: "compra", rotulo: "Primeira compra", texto: compra },
     { id: "novo-venda", tipo: "novo", rotulo: "Venda de produto novo", texto: venda },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: `${venda} fiado pro João` },
     { id: "despesa", tipo: "despesa", rotulo: "Despesa", texto: despesa },
   ];
 }
@@ -183,6 +188,6 @@ export function gerarChips(negocio: Negocio, agora: number): Chip[] {
     });
   const vistos = new Set(base.map((c) => c.texto));
   const doHistorico = chipsDoHistorico(negocio, agora).filter((c) => !vistos.has(c.texto));
-  // Os do histórico vêm logo depois do primeiro chip de cada tipo importante.
-  return [...base.slice(0, 2), ...doHistorico, ...base.slice(2)].map(({ id, tipo, rotulo, texto }) => ({ id, tipo, rotulo, texto }));
+  // Compra, meta e fiado na frente; os do histórico logo depois.
+  return [...base.slice(0, 3), ...doHistorico, ...base.slice(3)].map(({ id, tipo, rotulo, texto }) => ({ id, tipo, rotulo, texto }));
 }

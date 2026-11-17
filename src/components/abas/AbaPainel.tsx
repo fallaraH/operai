@@ -7,6 +7,7 @@ import type { Negocio } from "@/lib/dominio/tipos";
 import { moeda } from "@/lib/formatar";
 import { numeroBr } from "@/lib/interpretador/numeros";
 import { definirMetaSemanal } from "@/lib/store";
+import { CardFiados } from "../painel/CardFiados";
 import { CardMaisVendidos } from "../painel/CardMaisVendidos";
 import { GraficoEntradasSaidas } from "../painel/GraficoEntradasSaidas";
 import { CARTAO, TituloSecao } from "../ui/Cartao";
@@ -16,9 +17,10 @@ import { useAposMontar } from "../ui/useAposMontar";
 interface Props {
   negocio: Negocio;
   agora: number;
+  aoQuitarFiado: (transacaoId: string) => void;
 }
 
-export function AbaPainel({ negocio, agora }: Props) {
+export function AbaPainel({ negocio, agora, aoQuitarFiado }: Props) {
   const montado = useAposMontar();
   const mes = useMemo(() => resumoMes(negocio, agora), [negocio, agora]);
   const serie = useMemo(() => serieDiaria(negocio, agora), [negocio, agora]);
@@ -33,6 +35,8 @@ export function AbaPainel({ negocio, agora }: Props) {
       </section>
 
       <CardMeta negocio={negocio} agora={agora} montado={montado} />
+
+      <CardFiados negocio={negocio} aoQuitarFiado={aoQuitarFiado} />
 
       <GraficoEntradasSaidas serie={serie} />
 

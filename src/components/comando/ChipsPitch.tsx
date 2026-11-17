@@ -1,6 +1,6 @@
 "use client";
 
-import { PackagePlus, Receipt, ShoppingBag, Sparkles, Target, Trash2, TriangleAlert, type LucideIcon } from "lucide-react";
+import { NotebookPen, PackagePlus, Receipt, ShoppingBag, Sparkles, Target, Trash2, TriangleAlert, type LucideIcon } from "lucide-react";
 import type { Chip, TipoChip } from "@/lib/chips";
 
 const VISUAL: Record<TipoChip, { Icone: LucideIcon; cor: string }> = {
@@ -8,6 +8,7 @@ const VISUAL: Record<TipoChip, { Icone: LucideIcon; cor: string }> = {
   repor: { Icone: TriangleAlert, cor: "text-amber-600" },
   venda: { Icone: ShoppingBag, cor: "text-emerald-700" },
   meta: { Icone: Target, cor: "text-emerald-300" },
+  fiado: { Icone: NotebookPen, cor: "text-amber-600" },
   perda: { Icone: Trash2, cor: "text-red-600" },
   despesa: { Icone: Receipt, cor: "text-zinc-500" },
   novo: { Icone: Sparkles, cor: "text-emerald-700" },

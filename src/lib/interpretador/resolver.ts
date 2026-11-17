@@ -280,7 +280,8 @@ export function planejarRegistro(
     tipo === "perda"
       ? totalDito ?? (linhas.every((l) => l.total !== null) ? somaLinhas : 0)
       : totalDito ?? somaLinhas;
-  const prefixo = tipo === "venda" ? "Venda" : tipo === "compra" ? "Compra" : "Perda";
+  const fiado = tipo === "venda" && interp.fiado === true;
+  const prefixo = tipo === "venda" ? (fiado ? "Venda fiado" : "Venda") : tipo === "compra" ? "Compra" : "Perda";
 
   return {
     ok: true,
@@ -295,6 +296,7 @@ export function planejarRegistro(
           ? { custoEstimado: arredondar(valor * razaoCusto(negocio, agora), 2) }
           : {}),
         contraparte: interp.cliente_ou_fornecedor ?? undefined,
+        ...(fiado ? { fiado: { status: "pendente" as const } } : {}),
         origem,
       },
       novosItens,

@@ -49,6 +49,7 @@ export function interpretacaoEditada(base: Interpretacao, t: Transacao, e: Edica
     itens,
     valor_total_operacao: despesa ? e.valor : null,
     categoria_despesa: despesa ? t.categoriaDespesa ?? base.categoria_despesa : null,
+    fiado: base.fiado,
   };
   return { ...base, ...parcial, mensagem_confirmacao: mensagemConfirmacao(parcial), confianca: 1, observacoes: undefined };
 }

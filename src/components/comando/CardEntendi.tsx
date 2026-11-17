@@ -6,7 +6,9 @@ import type { MudancaDisponibilidade } from "@/lib/dominio/estoque";
 import type { Negocio, Transacao } from "@/lib/dominio/tipos";
 import { moeda, quantidade } from "@/lib/formatar";
 import type { EdicaoCard } from "@/lib/interpretador/edicao";
-import { renomearNoRegistro, type ResultadoComando } from "@/lib/store";
+import { mascararTelefone } from "@/lib/fiado";
+import { registrarCobranca, renomearNoRegistro, type ResultadoComando } from "@/lib/store";
+import { CobrancaWhatsApp } from "../fiado/CobrancaWhatsApp";
 import { visualDa } from "../ui/visualTransacao";
 import { TOM_OPERACAO, TOM_RECEITA } from "../ui/tons";
 import { FormEdicao } from "./FormEdicao";
@@ -145,8 +147,17 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
   const [pausado, setPausado] = useState(false);
   const [editando, setEditando] = useState(false);
   const [renomeando, setRenomeando] = useState<number | null>(null);
+  const [cliente, setCliente] = useState(resultado.transacao.contraparte ?? "");
+  const [telefone, setTelefone] = useState(() => mascararTelefone(resultado.transacao.fiado?.telefone ?? ""));
   const pendentes = resultado.perguntas.filter((p) => !(p.itemId in respostas));
-  const contando = pendentes.length === 0 && !editando && renomeando === null;
+  // Fiado espera o contato do cliente: sem contagem até enviar, agendar ou confirmar.
+  const fiado = transacao.fiado?.status === "pendente";
+  const contando = pendentes.length === 0 && !editando && renomeando === null && !fiado;
+
+  /** Guarda nome e celular do fiado (com o modo, marca a cobrança como feita). */
+  function salvarContato(modo?: "whatsapp" | "agendada") {
+    if (fiado) registrarCobranca(resultado.negocioId, transacao.id, { cliente, telefone, modo });
+  }
 
   function renomear(indice: number, nome: string) {
     const r = indice === DESCRICAO ? { descricao: nome } : { linhas: { [indice]: nome } };
@@ -161,8 +172,9 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
   const insumos = resultado.impacto.filter((m) => m.categoria === "insumo");
   const finais = resultado.impacto.filter((m) => m.categoria === "producao_propria");
   const revenda = resultado.impacto.filter((m) => m.categoria === "revenda");
-  const caixa =
-    transacao.tipo === "venda"
+  const caixa = fiado
+    ? { texto: `${moeda(transacao.valor)} a receber (fiado)`, cor: "text-amber-700" }
+    : transacao.tipo === "venda"
       ? { texto: `+${moeda(transacao.valor)} no caixa`, cor: "text-emerald-700" }
       : transacao.tipo === "perda"
         ? { texto: `Prejuízo de ${moeda(transacao.valor)} (caixa sem movimento)`, cor: "text-red-700" }
@@ -263,6 +275,25 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
           <FormEdicao transacao={transacao} aoAplicar={(e) => aoReaplicar(transacao, e)} aoCancelar={() => setEditando(false)} />
         )}
 
+        {fiado && !editando && (
+          <CobrancaWhatsApp
+            negocio={negocio}
+            transacao={transacao}
+            cliente={cliente}
+            telefone={telefone}
+            aoMudarCliente={setCliente}
+            aoMudarTelefone={setTelefone}
+            aoEnviar={() => {
+              salvarContato("whatsapp");
+              aoConcluir("Cobrança registrada e pronta no WhatsApp!");
+            }}
+            aoAgendar={() => {
+              salvarContato("agendada");
+              aoConcluir(`Cobrança agendada para ${telefone}`);
+            }}
+          />
+        )}
+
         <ol className="mt-2" aria-label="Impacto">
           {insumos.length > 0 && (
             <Passo Icone={Wheat} titulo="Estoque de insumos" tom={TOM_OPERACAO.badge}>
@@ -347,11 +378,14 @@ export function CardEntendi({ resultado, negocio, aoFechar, aoDesfazer, aoReapli
           <Pencil className="size-4" strokeWidth={1.75} /> Editar
         </button>
         <span className="min-w-0 flex-1 truncate px-1 text-right text-[11px] text-zinc-400">
-          {editando ? "Editando" : renomeando !== null ? "Renomeando" : pendentes.length ? "Responda ou confirme" : pausado ? "Pausado" : "Fecha em 10 s"}
+          {editando ? "Editando" : renomeando !== null ? "Renomeando" : fiado ? "" : pendentes.length ? "Responda ou confirme" : pausado ? "Pausado" : "Fecha em 10 s"}
         </span>
         <button
           type="button"
-          onClick={() => aoConcluir("Registro confirmado")}
+          onClick={() => {
+            salvarContato();
+            aoConcluir(fiado ? "Fiado registrado em A receber" : "Registro confirmado");
+          }}
           disabled={editando || renomeando !== null}
           className="flex shrink-0 items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
         >

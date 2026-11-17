@@ -37,6 +37,7 @@ const Saida = z.object({
   itens: z.array(Item),
   valor_total_operacao: z.number().nullable(),
   categoria_despesa: z.string().nullable(),
+  fiado: z.boolean(),
   mensagem_confirmacao: z.string(),
 });
 
@@ -64,6 +65,7 @@ Valores:
 
 Outros campos:
 - cliente_ou_fornecedor: pessoa ou empresa citada (cliente na venda, fornecedor na compra); senão null.
+- fiado: true só em venda no fiado, quando o cliente vai pagar depois ("fiado", "pendurou", "na caderneta", "no caderninho", "vai pagar depois", "anota pro João", "marca na conta do Zé"); o devedor vai em cliente_ou_fornecedor. Nos demais casos, false.
 - categoria_despesa: só em despesa, uma de Sinistros, Multas, Prejuízos, Energia, Água, Gás, Aluguel, Internet, Pessoal, Frete, Impostos, Contador, Manutenção, Embalagens, Limpeza, Transporte, Marketing, Taxas ou Outros; nos demais tipos, null.
 - mensagem_confirmacao: uma frase curta em português começando com "Entendi:" que resume a movimentação.
 

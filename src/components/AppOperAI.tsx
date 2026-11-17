@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Pencil, RotateCcw, Undo2, type LucideIcon } from "lucide-react";
+import { CircleCheck, HandCoins, Pencil, RotateCcw, Undo2, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { gerarChips } from "@/lib/chips";
 import { confeteTelaCheia } from "@/lib/confete";
@@ -17,6 +17,8 @@ import {
   obterNegocio,
   obterNegocioAtivoId,
   registrarPlano,
+  quitarFiado,
+  registrarCobranca,
   reiniciarDemo,
   renomearNoRegistro,
   useAgora,
@@ -200,10 +202,24 @@ function InterfaceOperAI() {
       if (nome && refeita && nome !== refeita.nome) linhas[i] = nome;
     });
     renomearNoRegistro(negocioId, novo.transacao.id, { linhas, descricao: edicao.descricao ?? undefined });
+    // Fiado refeito mantém o cliente e o celular já informados.
+    if (transacao.fiado && novo.transacao.fiado) {
+      registrarCobranca(negocioId, novo.transacao.id, { cliente: transacao.contraparte ?? "", telefone: transacao.fiado.telefone ?? "" });
+    }
     // Edição salva = registro consolidado: o card fecha e não reabre.
     setConsolidadas((s) => new Set(s).add(transacao.id).add(novo.transacao.id));
     setResultado(null);
     avisar(`Registro corrigido · total ${moeda(novo.transacao.valor)}`, Pencil);
+    celebrarSeCruzou(negocioId, estavaBatida);
+  }
+
+  /** Cliente pagou o fiado: entra no caixa agora (e pode bater a meta). */
+  function receberFiado(transacaoId: string) {
+    const negocioId = obterNegocioAtivoId();
+    const estavaBatida = metaBatida(negocioId);
+    const t = quitarFiado(negocioId, transacaoId);
+    if (!t) return;
+    avisar(`Fiado${t.contraparte ? ` de ${t.contraparte}` : ""} recebido · +${moeda(t.valor)}`, HandCoins);
     celebrarSeCruzou(negocioId, estavaBatida);
   }
 
@@ -234,9 +250,9 @@ function InterfaceOperAI() {
       />
 
       <main key={`${negocio.id}-${aba}`} className="animate-surgir flex-1 px-4 pt-4 pb-52">
-        {aba === "painel" && <AbaPainel negocio={negocio} agora={agora} />}
+        {aba === "painel" && <AbaPainel negocio={negocio} agora={agora} aoQuitarFiado={receberFiado} />}
         {aba === "estoque" && <AbaEstoque negocio={negocio} agora={agora} />}
-        {aba === "historico" && <AbaHistorico negocio={negocio} agora={agora} />}
+        {aba === "historico" && <AbaHistorico negocio={negocio} agora={agora} aoQuitarFiado={receberFiado} />}
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md">

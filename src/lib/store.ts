@@ -14,6 +14,7 @@ import {
   VERSAO_DADOS,
   type NovoNegocioInput,
 } from "./dados/negocios";
+import { digitosTelefone } from "./fiado";
 import { chaveDia } from "./formatar";
 import { novoId } from "./id";
 import type { PerguntaItemNovo, PlanoRegistro } from "./interpretador/resolver";
@@ -365,6 +366,45 @@ export function renomearNoRegistro(negocioId: string, transacaoId: string, r: Re
     },
   });
   return transacao;
+}
+
+/** Aplica `fn` a uma venda fiada; devolve a transação atualizada. */
+function mudarFiado(negocioId: string, transacaoId: string, fn: (t: Transacao) => Transacao): Transacao | null {
+  const e = atual();
+  const n = e.negocios[negocioId];
+  const t = n?.transacoes.find((x) => x.id === transacaoId);
+  if (!n || !t?.fiado) return null;
+  const novo = fn(t);
+  definir({
+    ...e,
+    negocios: { ...e.negocios, [negocioId]: { ...n, transacoes: n.transacoes.map((x) => (x.id === transacaoId ? novo : x)) } },
+  });
+  return novo;
+}
+
+/** Cliente e celular da cobrança; com `modo`, marca a cobrança como enviada ou agendada. */
+export function registrarCobranca(
+  negocioId: string,
+  transacaoId: string,
+  dados: { cliente: string; telefone: string; modo?: "whatsapp" | "agendada" },
+): Transacao | null {
+  return mudarFiado(negocioId, transacaoId, (t) => ({
+    ...t,
+    contraparte: dados.cliente.trim() || t.contraparte,
+    fiado: {
+      ...t.fiado!,
+      telefone: digitosTelefone(dados.telefone) || t.fiado!.telefone,
+      ...(dados.modo ? { cobrancaModo: dados.modo, cobrancaEm: Date.now() } : {}),
+    },
+  }));
+}
+
+/** Cliente pagou: o valor entra agora no faturamento, no lucro e na meta. */
+export function quitarFiado(negocioId: string, transacaoId: string): Transacao | null {
+  tocarRelogio();
+  return mudarFiado(negocioId, transacaoId, (t) =>
+    t.fiado!.status === "pago" ? t : { ...t, fiado: { ...t.fiado!, status: "pago", pagoEm: lerRelogio() } },
+  );
 }
 
 /** Negócio atual fora do React (para ações assíncronas conferirem o estado). */

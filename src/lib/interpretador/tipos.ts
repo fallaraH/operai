@@ -33,6 +33,8 @@ export interface Interpretacao {
   valor_total_operacao: number | null;
   /** Só em despesa: Energia, Gás, Aluguel... */
   categoria_despesa: string | null;
+  /** Venda no fiado ("pendurou", "na caderneta", "anota pro João"): fica a receber. */
+  fiado?: boolean;
   mensagem_confirmacao: string;
   /** 0 a 1: quanto o motor confia na leitura. */
   confianca: number;

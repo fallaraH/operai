@@ -3,7 +3,7 @@ import type { Interpretacao } from "./tipos";
 
 type Base = Pick<
   Interpretacao,
-  "tipo_movimentacao" | "cliente_ou_fornecedor" | "itens" | "valor_total_operacao" | "categoria_despesa"
+  "tipo_movimentacao" | "cliente_ou_fornecedor" | "itens" | "valor_total_operacao" | "categoria_despesa" | "fiado"
 >;
 
 /** "Entendi: compra de 50 kg Farinha de Trigo e 20 L Leite Integral por R$ 320,00." */
@@ -18,7 +18,7 @@ export function mensagemConfirmacao(i: Base): string {
     case "entrada":
       return `Entendi: compra de ${itens || "mercadoria"}${preco}${quem ? ` (${quem})` : ""}.`;
     case "saida_venda":
-      return `Entendi: venda de ${itens || "valor avulso"}${preco}${quem ? ` para ${quem}` : ""}.`;
+      return `Entendi: venda${i.fiado ? " no fiado" : ""} de ${itens || "valor avulso"}${preco}${quem ? ` para ${quem}` : ""}.`;
     case "saida_perda":
       return `Entendi: perda de ${itens || "mercadoria"}${valor !== null ? ` (${moeda(valor)})` : ""}.`;
     case "despesa": {

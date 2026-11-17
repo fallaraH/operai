@@ -46,6 +46,7 @@ export function sanitizarInterpretacao(
     itens: (Array.isArray(o.itens) ? o.itens.slice(0, 20) : []).map(item).filter((i): i is ItemInterpretado => i !== null),
     valor_total_operacao: numero(o.valor_total_operacao),
     categoria_despesa: tipo === "despesa" ? texto(o.categoria_despesa, 30) : null,
+    fiado: tipo === "saida_venda" && o.fiado === true,
   };
   const observacoes = Array.isArray(o.observacoes)
     ? o.observacoes.filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 200)).slice(0, 3)

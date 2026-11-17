@@ -67,6 +67,21 @@ export interface LinhaTransacao {
   valorUnitario?: number;
 }
 
+/**
+ * Venda no fiado: o estoque sai na hora, mas o dinheiro só entra no caixa (faturamento,
+ * lucro e meta) quando o cliente paga. O devedor é a `contraparte` da transação.
+ */
+export interface Fiado {
+  status: "pendente" | "pago";
+  /** Celular com DDD, só dígitos e sem o +55. */
+  telefone?: string;
+  /** Quando a cobrança foi aberta no WhatsApp ou agendada. */
+  cobrancaEm?: number;
+  cobrancaModo?: "whatsapp" | "agendada";
+  /** Quando o cliente pagou: é a data de entrada do dinheiro. */
+  pagoEm?: number;
+}
+
 export interface Transacao {
   id: string;
   tipo: TipoTransacao;
@@ -84,6 +99,8 @@ export interface Transacao {
   contraparte?: string;
   /** Chip de teste rápido que originou o registro (some da fileira enquanto o registro existir). */
   chipId?: string;
+  /** Só em venda: vendido no fiado (a receber até o pagamento). */
+  fiado?: Fiado;
   origem: OrigemTransacao;
 }
 

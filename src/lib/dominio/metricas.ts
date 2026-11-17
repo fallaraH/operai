@@ -16,7 +16,20 @@ function diasAnterioresNoMes(agora: number): number {
   return Math.max(0, new Date(agora).getDate() - JANELA_DIAS);
 }
 
+/** Venda no fiado ainda não paga: o valor está "a receber", fora do caixa. */
+export const fiadoPendente = (t: Transacao): boolean => t.tipo === "venda" && t.fiado?.status === "pendente";
+
+/**
+ * Quando a transação mexe no dinheiro: na hora, exceto o fiado, que entra no
+ * pagamento (`null` enquanto pendente).
+ */
+export function dataNoCaixa(t: Transacao): number | null {
+  if (!t.fiado) return t.timestamp;
+  return t.fiado.status === "pago" ? t.fiado.pagoEm ?? t.timestamp : null;
+}
+
 export function lucroDaTransacao(t: Transacao): number {
+  if (fiadoPendente(t)) return 0;
   if (t.tipo === "venda") return t.valor - (t.custoEstimado ?? 0);
   if (t.tipo === "despesa" || t.tipo === "perda") return -t.valor;
   // Compra vira estoque; o custo entra no lucro quando o item é vendido.
@@ -32,7 +45,8 @@ export function resumoMes(negocio: Negocio, agora: number): ResumoMes {
   let faturamento = 0;
   let lucro = 0;
   for (const t of negocio.transacoes) {
-    if (t.timestamp > agora || !noMesAtual(t.timestamp, agora)) continue;
+    const quando = dataNoCaixa(t);
+    if (quando === null || quando > agora || !noMesAtual(quando, agora)) continue;
     if (t.tipo === "venda") faturamento += t.valor;
     lucro += lucroDaTransacao(t);
   }
@@ -53,13 +67,14 @@ export interface SaldoSemana {
   liquido: number;
 }
 
-/** Saldo líquido dos últimos 7 dias: toda saída (inclusive perda e sinistro) desconta das vendas. */
+/** Saldo líquido dos últimos 7 dias: toda saída (inclusive perda e sinistro) desconta das vendas; fiado só conta quando pago. */
 export function saldoDaSemana(transacoes: Transacao[], agora: number): SaldoSemana {
   const inicio = inicioJanela(agora);
   let entradas = 0;
   let saidas = 0;
   for (const t of transacoes) {
-    if (t.timestamp < inicio || t.timestamp > agora) continue;
+    const quando = dataNoCaixa(t);
+    if (quando === null || quando < inicio || quando > agora) continue;
     if (t.tipo === "venda") entradas += t.valor;
     else saidas += t.valor;
   }
@@ -100,8 +115,9 @@ export function serieDiaria(negocio: Negocio, agora: number): PontoDiario[] {
     pontos.push({ data: d.getTime(), rotulo: i === 0 ? "Hoje" : DIAS_SEMANA[d.getDay()], entradas: 0, saidas: 0, hoje: i === 0 });
   }
   for (const t of negocio.transacoes) {
-    if (t.timestamp > agora) continue;
-    const dia = inicioDoDia(t.timestamp);
+    const quando = dataNoCaixa(t);
+    if (quando === null || quando > agora) continue;
+    const dia = inicioDoDia(quando);
     const ponto = pontos.find((p) => p.data === dia);
     if (!ponto) continue;
     if (t.tipo === "venda") ponto.entradas += t.valor;
@@ -146,6 +162,8 @@ export interface GrupoDia {
   transacoes: Transacao[];
   entradas: number;
   saidas: number;
+  /** Fiado vendido no dia e ainda não pago. */
+  aReceber: number;
 }
 
 export function rotuloDia(data: number, agora: number): string {
@@ -166,12 +184,24 @@ export function agruparPorDia(negocio: Negocio, agora: number): GrupoDia[] {
     const dia = inicioDoDia(t.timestamp);
     let g = grupos.get(dia);
     if (!g) {
-      g = { data: dia, rotulo: rotuloDia(dia, agora), transacoes: [], entradas: 0, saidas: 0 };
+      g = { data: dia, rotulo: rotuloDia(dia, agora), transacoes: [], entradas: 0, saidas: 0, aReceber: 0 };
       grupos.set(dia, g);
     }
     g.transacoes.push(t);
-    if (t.tipo === "venda") g.entradas += t.valor;
+    if (fiadoPendente(t)) g.aReceber += t.valor;
+    else if (t.tipo === "venda") g.entradas += t.valor;
     else if (t.tipo !== "perda") g.saidas += t.valor;
   }
   return [...grupos.values()];
+}
+
+export interface ResumoFiados {
+  total: number;
+  pendentes: Transacao[];
+}
+
+/** Fiados a receber, do vencimento mais próximo ao mais distante (= venda mais antiga primeiro). */
+export function fiadosAReceber(negocio: Negocio): ResumoFiados {
+  const pendentes = negocio.transacoes.filter(fiadoPendente).sort((a, b) => a.timestamp - b.timestamp);
+  return { total: pendentes.reduce((s, t) => s + t.valor, 0), pendentes };
 }
