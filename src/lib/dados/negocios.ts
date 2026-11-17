@@ -126,7 +126,7 @@ const PADARIA: NegocioSemente = {
 
 const PET_SHOP: NegocioSemente = {
   id: "petshop",
-  nome: "Pet Shop Amigo Fiel",
+  nome: "Inu Pet Club",
   nicho: "petshop",
   ramo: "Pet Shop",
   icone: "pet",
@@ -157,7 +157,7 @@ const PET_SHOP: NegocioSemente = {
 
 const LOJA_ROUPAS: NegocioSemente = {
   id: "roupas",
-  nome: "Loja de Roupas Estilo Urbano",
+  nome: "DallaStore",
   nicho: "roupas",
   ramo: "Loja de Roupas",
   icone: "roupa",
