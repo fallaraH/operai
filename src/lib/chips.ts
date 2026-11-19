@@ -33,21 +33,20 @@ const ROTEIROS: Record<string, ChipBase[]> = {
     { id: "novo-compra", tipo: "novo", rotulo: "Produto novo (compra)", texto: "Comprei 10 kg de queijo muçarela por 450 reais no atacadão" },
   ],
   petshop: [
-    { id: "compra", tipo: "compra", rotulo: "Repor ração", texto: "Comprei 10 rações premium de 15kg por 1420 reais" },
-    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 2 rações premium de 15kg por 399,80 reais", quandoMeta: "aberta", valor: 399.8 },
-    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 1 ração premium e 2 areias por 243,70 fiado pro Seu Carlos" },
+    { id: "compra", tipo: "compra", rotulo: "Chegou areia Pipicat", texto: "Chegaram 10 pacotes de areia Pipicat por 102 reais" },
+    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 2 sacos de ração Golden e 3 biscoitos Pedigree no Pix", quandoMeta: "aberta", valor: 414.5 },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 1 antipulgas Bravecto fiado para a Mariana" },
     { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 coleiras por 59,80 reais" },
     { id: "novo-compra", tipo: "novo", rotulo: "Produto novo (compra)", texto: "Comprei 12 comedouros por 180 reais" },
-    { id: "perda", tipo: "perda", rotulo: "Perda de estoque", texto: "Perdi 1 shampoo vazado" },
+    { id: "perda", tipo: "perda", rotulo: "Areia rasgada", texto: "Perdi 2 pacotes de areia Pipicat que rasgaram" },
     { id: "despesa", tipo: "despesa", rotulo: "Internet", texto: "Paguei 110 reais de internet" },
   ],
   roupas: [
-    { id: "compra", tipo: "compra", rotulo: "Repor camisetas", texto: "Comprei 20 camisetas por 360 reais" },
-    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 3 camisetas e 1 calça jeans por 289,60 reais", quandoMeta: "aberta", valor: 289.6 },
-    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 2 camisetas e 1 bermuda por 169,70 reais, anota pra Dona Ana" },
-    { id: "compra-insumo", tipo: "compra", rotulo: "Comprar tecido", texto: "Comprei 10 metros de tecido por 140 reais" },
-    { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 bonés por 70 reais" },
-    { id: "perda", tipo: "perda", rotulo: "Peça com defeito", texto: "Perdi 2 camisetas com defeito" },
+    { id: "compra", tipo: "compra", rotulo: "Chegou Conjunto Viver", texto: "Chegaram 15 unidades do Conjunto Viver Verde Menta por 1.575 reais" },
+    { id: "meta", tipo: "meta", rotulo: "Bater a meta da semana", texto: "Vendi 2 Conjunto Total Confort Preto no Pix", quandoMeta: "aberta", valor: 418 },
+    { id: "fiado", tipo: "fiado", rotulo: "Venda no fiado", texto: "Vendi 1 Conjunto Dalla Gold Azul Marinho fiado para a Camila" },
+    { id: "novo-venda", tipo: "novo", rotulo: "Produto novo (venda)", texto: "Vendi 2 bolsas por 180 reais" },
+    { id: "perda", tipo: "perda", rotulo: "Peça com defeito", texto: "Perdi 1 Vestido Flow Estampado Azul que veio com defeito" },
     { id: "despesa", tipo: "despesa", rotulo: "Anúncio", texto: "Paguei 150 reais de anúncio" },
   ],
   mercado: [
@@ -92,6 +91,7 @@ function roteiroPersonalizado(n: Negocio): ChipBase[] {
 
 /** "Ração Premium Cães 15kg" → "ração premium cães"; usa o menor apelido quando há. */
 function nomeFalado(item: ItemEstoque): string {
+  if (item.nomeCurto) return item.nomeCurto;
   const semMedida = item.nome.replace(/\s*\d+(?:[.,]\d+)?\s*(?:kg|g|ml|l)\b/gi, "").trim().toLowerCase();
   const apelido = [...(item.apelidos ?? [])].sort((a, b) => a.length - b.length).find((a) => a.length > 2);
   return apelido && apelido.length < semMedida.length ? apelido : semMedida;
@@ -125,7 +125,8 @@ function chipsDoHistorico(n: Negocio, agora: number): ChipBase[] {
     .filter((s) => s.cor !== "verde" && s.item.categoria !== "producao_propria" && s.custoUnitario > 0)
     .sort((a, b) => (a.cor === b.cor ? 0 : a.cor === "vermelho" ? -1 : 1))[0];
   if (urgente) {
-    const qtd = urgente.item.unidade === "un" ? 24 : 20;
+    // Peça cara repõe em lote pequeno (6 conjuntos), mercadoria barata em lote grande.
+    const qtd = urgente.custoUnitario >= 50 ? 6 : urgente.item.unidade === "un" ? 24 : 20;
     chips.push({
       id: `repor-${urgente.item.id}`,
       tipo: "repor",

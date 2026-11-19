@@ -39,8 +39,8 @@ import { SplashScreen } from "./SplashScreen";
 
 const EXEMPLO: Record<Nicho, string> = {
   padaria: "Ex: vendi 30 pães e 4 sonhos por 65 reais",
-  petshop: "Ex: vendi 2 rações premium por 399,80",
-  roupas: "Ex: vendi 3 camisetas a 49,90 cada",
+  petshop: "Ex: vendi 2 sacos de ração Golden por 339,80",
+  roupas: "Ex: vendi 1 Conjunto Viver Verde Menta por 229",
   mercado: "Ex: vendi 6 latinhas e 1 arroz por 59,84",
   personalizado: "Ex: comprei 10 unidades por 50 reais",
 };

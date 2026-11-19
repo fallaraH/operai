@@ -7,7 +7,7 @@ const DURACAO_BARRA_MS = 1800;
 /** Igual ao `duration-700` do fade-out. */
 const FADE_MS = 700;
 const VERDE_NEON = "#22c55e";
-const MASCARA = "radial-gradient(ellipse closest-side at center, #000 62%, transparent 100%)";
+const MASCARA = "radial-gradient(ellipse at center, #000 70%, transparent 96%)";
 
 interface Props {
   /** Dados do localStorage já carregados: a interface pode aparecer. */
@@ -54,29 +54,35 @@ export function SplashScreen({ pronto }: Props) {
         saindo ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- arte estática de abertura */}
-      <img
-        src="/operai-loading.jfif"
-        alt="OperAI: seu financeiro no piloto automático"
-        className="animate-entrar-logo mx-auto h-auto w-full max-w-[280px] object-contain sm:max-w-[340px]"
-        // Bordas esmaecidas: a foto se mescla ao fundo sem mostrar a moldura retangular.
+      {/* Zoom na arte central: o recorte (overflow-hidden + scale) tira a margem escura da foto
+          (a arte ocupa ~13%-90% da altura; acima de 1,2x a engrenagem e o subtítulo seriam cortados). */}
+      <div
+        className="animate-entrar-logo relative flex aspect-[16/10] w-[92vw] max-w-[380px] items-center justify-center overflow-hidden sm:max-w-[540px] md:max-w-[640px]"
+        // Bordas esmaecidas: o fundo da foto (#191718) é um pouco mais claro que o #141414 da tela.
         style={{ maskImage: MASCARA, WebkitMaskImage: MASCARA }}
-      />
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- arte estática de abertura */}
+        <img
+          src="/operai-loading.jfif"
+          alt="OperAI: seu financeiro no piloto automático"
+          className="h-full w-full scale-[1.2] object-cover mix-blend-lighten"
+        />
+      </div>
 
-      <div className="mt-6 flex w-full flex-col items-center">
+      <div className="mt-4 flex w-full flex-col items-center sm:mt-6">
         <div
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={inteiro}
-          className="h-2.5 w-64 overflow-hidden rounded-full border border-zinc-700/60 bg-zinc-800 sm:w-72"
+          className="h-3.5 w-[80vw] max-w-[320px] overflow-hidden rounded-full border border-zinc-700/70 bg-zinc-800/90 p-0.5 sm:h-4 sm:max-w-[420px]"
         >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#22c55e] shadow-[0_0_12px_#22c55e]"
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-[#22c55e] to-lime-400 shadow-[0_0_16px_#22c55e]"
             style={{ width: `${progresso}%` }}
           />
         </div>
-        <p className="mt-2 font-mono text-sm font-semibold tabular-nums" style={{ color: VERDE_NEON }}>
+        <p className="mt-3 font-mono text-base font-bold tabular-nums sm:text-lg" style={{ color: VERDE_NEON }}>
           {inteiro}%
         </p>
       </div>

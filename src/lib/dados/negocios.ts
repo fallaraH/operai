@@ -57,7 +57,7 @@ interface NegocioSemente {
 const FATOR_DIA = [0.85, 0.85, 0.95, 1, 1, 1.15, 1.3];
 
 /** Suba ao mudar as sementes: negócios de demonstração intocados são refeitos no navegador. */
-export const VERSAO_DADOS = 5;
+export const VERSAO_DADOS = 6;
 
 const PADARIA: NegocioSemente = {
   id: "padaria",
@@ -130,28 +130,27 @@ const PET_SHOP: NegocioSemente = {
   nicho: "petshop",
   ramo: "Pet Shop",
   icone: "pet",
- 
   modo: "revenda",
   abertura: 9,
   fechamento: 19,
   clientesPorDia: 16,
-  faltaMeta: 200, // chip: 2 rações premium por R$ 399,80
+  faltaMeta: 200, // chip: 2 sacos de ração Golden + 3 biscoitos Pedigree = R$ 414,50
+  // "saco" e "unidade" ficam como un; "pacote" como pct (o interpretador já lê saco como pacote).
   itens: [
-    { id: "racao-caes", nome: "Ração Premium Cães 15kg", categoria: "revenda", unidade: "un", quantidade: 9, custoUnitario: 142, precoVenda: 199.9, apelidos: ["ração de cachorro", "ração cães", "ração premium"], vendaDiaria: 1.3, porCliente: [1, 1] },
-    { id: "racao-gatos", nome: "Ração Gatos Castrados 10kg", categoria: "revenda", unidade: "un", quantidade: 3, custoUnitario: 118, precoVenda: 169.9, apelidos: ["ração de gato", "ração gatos"], vendaDiaria: 1.1, porCliente: [1, 1] },
-    { id: "racao-granel", nome: "Ração a Granel", categoria: "revenda", unidade: "kg", quantidade: 42, custoUnitario: 9.5, precoVenda: 16.9, apelidos: ["ração a granel", "granel", "ração no quilo"], vendaDiaria: 6, porCliente: [1, 3] },
-    { id: "areia", nome: "Areia Sanitária 4kg", categoria: "revenda", unidade: "un", quantidade: 16, custoUnitario: 11, precoVenda: 21.9, apelidos: ["areia", "areia de gato"], vendaDiaria: 2.5, porCliente: [1, 2] },
-    { id: "petisco", nome: "Petisco Bifinho 65g", categoria: "revenda", unidade: "un", quantidade: 0, custoUnitario: 4.2, precoVenda: 9.9, apelidos: ["petisco", "bifinho"], vendaDiaria: 4, porCliente: [1, 3] },
-    { id: "shampoo", nome: "Shampoo Pet 500ml", categoria: "revenda", unidade: "un", quantidade: 7, custoUnitario: 13, precoVenda: 29.9, apelidos: ["shampoo"], vendaDiaria: 0.8, porCliente: [1, 1] },
-    { id: "antipulgas", nome: "Antipulgas Comprimido", categoria: "revenda", unidade: "un", quantidade: 5, custoUnitario: 58, precoVenda: 94.9, apelidos: ["antipulgas", "remédio de pulga"], vendaDiaria: 0.6, porCliente: [1, 1] },
-    { id: "mordedor", nome: "Brinquedo Mordedor", categoria: "revenda", unidade: "un", quantidade: 11, custoUnitario: 8, precoVenda: 19.9, apelidos: ["mordedor", "brinquedo"], vendaDiaria: 1.2, porCliente: [1, 1] },
+    { id: "golden-caes", nome: "Ração Golden Formula Cães Adultos Frango 15kg", nomeCurto: "ração Golden", categoria: "revenda", unidade: "un", quantidade: 12, custoUnitario: 118, precoVenda: 169.9, apelidos: ["racao","golden","caes","cachorro","15kg","frango"], vendaDiaria: 1.2, porCliente: [1,2] },
+    { id: "premier-gatos", nome: "Ração Premier Gatos Castrados Salmão 7,5kg", nomeCurto: "ração Premier", categoria: "revenda", unidade: "un", quantidade: 4, custoUnitario: 139, precoVenda: 198, apelidos: ["racao","premier","gatos","castrados","salmao"], vendaDiaria: 0.8, porCliente: [1,1] },
+    { id: "bravecto", nome: "Antipulgas Bravecto Cães 10 a 20kg", nomeCurto: "antipulgas Bravecto", categoria: "revenda", unidade: "un", quantidade: 6, custoUnitario: 152, precoVenda: 215, apelidos: ["antipulgas","anti-pulgas","bravecto","remedio","comprimido"], vendaDiaria: 0.5, porCliente: [1,1] },
+    { id: "pedigree-biscrok", nome: "Biscoito Pedigree Biscrok Multi 1kg", nomeCurto: "biscoito Pedigree", categoria: "revenda", unidade: "pct", quantidade: 14, custoUnitario: 14.5, precoVenda: 24.9, apelidos: ["biscoito","petisco","pedigree","biscrok"], vendaDiaria: 2.5, porCliente: [1,3] },
+    { id: "pipicat", nome: "Areia Higiênica Pipicat Classic 4kg", nomeCurto: "areia Pipicat", categoria: "revenda", unidade: "pct", quantidade: 5, custoUnitario: 10.2, precoVenda: 18.5, apelidos: ["areia","pipicat","gato","higienica"], vendaDiaria: 2.5, porCliente: [1,2] },
+    { id: "super-secao", nome: "Tapete Higiênico Super Secão 30 un.", nomeCurto: "tapete Super Secão", categoria: "revenda", unidade: "pct", quantidade: 9, custoUnitario: 48, precoVenda: 74.9, apelidos: ["tapete","higienico","super secao","fralda"], vendaDiaria: 1.2, porCliente: [1,1] },
+    { id: "whiskas-sache", nome: "Sachê Whiskas Carne ao Molho 85g", nomeCurto: "sachê Whiskas", categoria: "revenda", unidade: "un", quantidade: 0, custoUnitario: 1.95, precoVenda: 3.5, apelidos: ["sache","whiskas","gato","carne"], vendaDiaria: 6, porCliente: [1,4] },
   ],
   movimentos: [
-    { diasAtras: 5, hora: 9.4, tipo: "compra", itens: [{ itemId: "racao-caes", quantidade: 10, valorUnitario: 142 }] },
+    { diasAtras: 5, hora: 9.4, tipo: "compra", itens: [{ itemId: "golden-caes", quantidade: 10, valorUnitario: 118 }] },
     { diasAtras: 4, hora: 11.2, tipo: "despesa", descricao: "Conta de água", categoriaDespesa: "Água", valor: 95 },
-    { diasAtras: 3, hora: 10.1, tipo: "compra", itens: [{ itemId: "areia", quantidade: 20, valorUnitario: 11 }, { itemId: "racao-granel", quantidade: 30, valorUnitario: 9.5 }] },
+    { diasAtras: 3, hora: 10.1, tipo: "compra", itens: [{ itemId: "pipicat", quantidade: 20, valorUnitario: 10.2 }, { itemId: "pedigree-biscrok", quantidade: 12, valorUnitario: 14.5 }] },
     { diasAtras: 1, hora: 17.5, tipo: "despesa", descricao: "Internet e telefone", categoriaDespesa: "Internet", valor: 110 },
-    { diasAtras: 2, hora: 16.2, tipo: "perda", descricao: "Perda: 3× Petisco Bifinho vencido", valor: 12.6, itens: [{ itemId: "petisco", quantidade: 3, valorUnitario: 4.2 }] },
+    { diasAtras: 2, hora: 16.2, tipo: "perda", descricao: "Perda: 3× Sachê Whiskas vencido", valor: 5.85, itens: [{ itemId: "whiskas-sache", quantidade: 3, valorUnitario: 1.95 }] },
   ],
 };
 
@@ -159,42 +158,29 @@ const LOJA_ROUPAS: NegocioSemente = {
   id: "roupas",
   nome: "DallaStore",
   nicho: "roupas",
-  ramo: "Loja de Roupas",
+  ramo: "Moda Feminina",
   icone: "roupa",
- 
-  modo: "hibrido",
+  modo: "revenda",
   abertura: 9,
-  fechamento: 19,
-  clientesPorDia: 9,
-  faltaMeta: 150, // chip: 3 camisetas + 1 calça por R$ 289,60
+  fechamento: 21,
+  clientesPorDia: 5,
+  faltaMeta: 150, // chip: 2 Conjunto Total Confort Preto = R$ 418,00
   itens: [
-    { id: "camiseta", nome: "Camiseta Básica Algodão", categoria: "revenda", unidade: "un", quantidade: 34, custoUnitario: 18, precoVenda: 49.9, apelidos: ["camiseta", "camisetas", "blusa"], vendaDiaria: 4, porCliente: [1, 3] },
-    { id: "calca-jeans", nome: "Calça Jeans Skinny", categoria: "revenda", unidade: "un", quantidade: 6, custoUnitario: 62, precoVenda: 139.9, apelidos: ["calça", "calças", "jeans"], vendaDiaria: 2, porCliente: [1, 2] },
-    { id: "vestido", nome: "Vestido Midi Floral", categoria: "revenda", unidade: "un", quantidade: 9, custoUnitario: 55, precoVenda: 129.9, apelidos: ["vestido", "vestidos"], vendaDiaria: 1.2, porCliente: [1, 1] },
-    { id: "bermuda", nome: "Bermuda Moletom", categoria: "revenda", unidade: "un", quantidade: 12, custoUnitario: 28, precoVenda: 69.9, apelidos: ["bermuda", "bermudas", "short"], vendaDiaria: 1.5, porCliente: [1, 2] },
-    { id: "meia", nome: "Meia Cano Médio", categoria: "revenda", unidade: "par", quantidade: 0, custoUnitario: 4, precoVenda: 12.9, apelidos: ["meia", "meias"], vendaDiaria: 3, porCliente: [1, 3] },
-    { id: "tecido", nome: "Tecido Algodão Cru", categoria: "insumo", unidade: "m", quantidade: 9, custoUnitario: 14, apelidos: ["tecido", "algodão cru", "pano"] },
-    { id: "linha", nome: "Linha de Costura", categoria: "insumo", unidade: "rolo", quantidade: 6, custoUnitario: 6, apelidos: ["linha", "linhas"] },
-    { id: "alca", nome: "Alça de Algodão", categoria: "insumo", unidade: "m", quantidade: 20, custoUnitario: 1.5, apelidos: ["alça", "cadarço", "fita"] },
-    {
-      id: "ecobag", nome: "Ecobag Artesanal", categoria: "producao_propria", unidade: "un", quantidade: 0, custoUnitario: 0, precoVenda: 34.9,
-      apelidos: ["ecobag", "ecobags", "sacola"],
-      ficha: { rendimento: 2, ingredientes: [{ insumoId: "tecido", quantidade: 1 }, { insumoId: "linha", quantidade: 0.1 }, { insumoId: "alca", quantidade: 1.2 }] },
-      vendaDiaria: 2, porCliente: [1, 2],
-    },
-    {
-      id: "scrunchie", nome: "Scrunchie de Tecido", categoria: "producao_propria", unidade: "un", quantidade: 0, custoUnitario: 0, precoVenda: 9.9,
-      apelidos: ["scrunchie", "xuxinha", "elástico de cabelo"],
-      ficha: { rendimento: 10, ingredientes: [{ insumoId: "tecido", quantidade: 0.5 }, { insumoId: "linha", quantidade: 0.05 }] },
-      vendaDiaria: 3, porCliente: [1, 3],
-    },
+    { id: "total-confort-preto", nome: "Conjunto Total Confort - Preto", nomeCurto: "Conjunto Total Confort Preto", categoria: "revenda", unidade: "un", quantidade: 14, custoUnitario: 95, precoVenda: 209, apelidos: ["conjunto","total confort","preto","viscolycra"], vendaDiaria: 1, porCliente: [1,2] },
+    { id: "mega-confort-marinho", nome: "Conjunto Mega Confort - Azul Marinho", nomeCurto: "Conjunto Mega Confort Azul Marinho", categoria: "revenda", unidade: "un", quantidade: 9, custoUnitario: 105, precoVenda: 229, apelidos: ["conjunto","mega confort","azul marinho","azul"], vendaDiaria: 0.8, porCliente: [1,2] },
+    { id: "viver-menta", nome: "Conjunto Viver - Verde Menta", nomeCurto: "Conjunto Viver Verde Menta", categoria: "revenda", unidade: "un", quantidade: 2, custoUnitario: 105, precoVenda: 229, apelidos: ["conjunto","viver","verde menta","verde"], vendaDiaria: 0.7, porCliente: [1,1] },
+    { id: "florence-salsa", nome: "Conjunto Florence - Verde Salsa", nomeCurto: "Conjunto Florence Verde Salsa", categoria: "revenda", unidade: "un", quantidade: 6, custoUnitario: 132, precoVenda: 289, apelidos: ["conjunto","florence","verde salsa"], vendaDiaria: 0.5, porCliente: [1,1] },
+    { id: "dalla-gold-marinho", nome: "Conjunto Dalla Gold - Azul Marinho", nomeCurto: "Conjunto Dalla Gold Azul Marinho", categoria: "revenda", unidade: "un", quantidade: 5, custoUnitario: 138, precoVenda: 299, apelidos: ["conjunto","dalla gold","gold","azul marinho"], vendaDiaria: 0.4, porCliente: [1,1] },
+    { id: "unique-bege", nome: "Conjunto Unique - Bege", nomeCurto: "Conjunto Unique Bege", categoria: "revenda", unidade: "un", quantidade: 7, custoUnitario: 132, precoVenda: 289, apelidos: ["conjunto","unique","bege","alfaiataria"], vendaDiaria: 0.5, porCliente: [1,1] },
+    { id: "vestido-flow", nome: "Vestido Flow - Estampado Azul", nomeCurto: "Vestido Flow Estampado Azul", categoria: "revenda", unidade: "un", quantidade: 8, custoUnitario: 118, precoVenda: 259, apelidos: ["vestido","flow","estampado","azul"], vendaDiaria: 0.6, porCliente: [1,1] },
+    { id: "macaquinho-santil", nome: "Macaquinho Santil - Estampado Verde", nomeCurto: "Macaquinho Santil Estampado Verde", categoria: "revenda", unidade: "un", quantidade: 0, custoUnitario: 118, precoVenda: 259, apelidos: ["macaquinho","santil","estampado","verde"], vendaDiaria: 0.6, porCliente: [1,1] },
   ],
   movimentos: [
-    { diasAtras: 6, hora: 10.2, tipo: "compra", itens: [{ itemId: "camiseta", quantidade: 20, valorUnitario: 18 }, { itemId: "bermuda", quantidade: 8, valorUnitario: 28 }] },
-    { diasAtras: 4, hora: 15.3, tipo: "compra", itens: [{ itemId: "tecido", quantidade: 10, valorUnitario: 14 }, { itemId: "linha", quantidade: 4, valorUnitario: 6 }] },
+    { diasAtras: 6, hora: 10.2, tipo: "compra", itens: [{ itemId: "total-confort-preto", quantidade: 20, valorUnitario: 95 }, { itemId: "mega-confort-marinho", quantidade: 10, valorUnitario: 105 }] },
+    { diasAtras: 4, hora: 15.3, tipo: "compra", itens: [{ itemId: "viver-menta", quantidade: 8, valorUnitario: 105 }, { itemId: "vestido-flow", quantidade: 10, valorUnitario: 118 }] },
     { diasAtras: 3, hora: 12.1, tipo: "despesa", descricao: "Anúncio no Instagram", categoriaDespesa: "Marketing", valor: 150 },
     { diasAtras: 1, hora: 18.2, tipo: "despesa", descricao: "Conta de luz", categoriaDespesa: "Energia", valor: 210 },
-    { diasAtras: 3, hora: 17.1, tipo: "perda", descricao: "Perda: 2× Camiseta com defeito de costura", valor: 36, itens: [{ itemId: "camiseta", quantidade: 2, valorUnitario: 18 }] },
+    { diasAtras: 3, hora: 17.1, tipo: "perda", descricao: "Perda: 1× Vestido Flow com defeito de costura", valor: 118, itens: [{ itemId: "vestido-flow", quantidade: 1, valorUnitario: 118 }] },
   ],
 };
 

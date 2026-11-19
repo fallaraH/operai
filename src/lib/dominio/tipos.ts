@@ -48,6 +48,8 @@ export interface ItemEstoque {
   consumoDiarioEstimado?: number;
   /** Outros nomes que o comerciante usa ("pãozinho", "cacetinho"...). */
   apelidos?: string[];
+  /** Como o comerciante fala o item nos chips de exemplo ("ração Golden"); sem ele, sai do nome/apelidos. */
+  nomeCurto?: string;
 }
 
 /**
